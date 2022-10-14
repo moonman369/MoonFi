@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DappToken is Ownable, IERC20, ERC20 {
-    string private constant c_name = "MoonFi Token";
-    string private constant c_symbol = "MOON";
+contract MoonStakeToken is Ownable, IERC20, ERC20 {
+    string private constant c_name = "MoonStake Token";
+    string private constant c_symbol = "MNST";
     uint256 private immutable i_totalSupply; // 1 million tokens
 
     // event Transfer(
