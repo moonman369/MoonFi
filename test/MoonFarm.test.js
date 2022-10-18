@@ -13,7 +13,7 @@ const expect = chai.expect;
 const BN = web3.utils.toBN;
 
 function tokens(n) {
-  return n * 10 ** 18;
+  return web3.utils.toWei(n.toString(), "ether");
 }
 
 contract("MoonFarm", ([owner, investor]) => {
@@ -38,33 +38,51 @@ contract("MoonFarm", ([owner, investor]) => {
     });
   });
 
-  describe("Mock DAI deployment", async () => {
-    it("MDAI contract should have desired name", async () => {
+  describe("\nI. Mock DAI deployment", async () => {
+    it("1. MDAI contract should have desired name", async () => {
       expect(await mdai.name()).to.equal("Mock DAI Token");
     });
   });
 
-  describe("MoonStake Token deployment", async () => {
-    it("MNST contract should have desired name", async () => {
+  describe("\nII. MoonStake Token deployment", async () => {
+    it("1. MNST contract should have desired name", async () => {
       expect(await mnst.name()).to.equal("MoonStake Token");
     });
   });
 
-  describe("MoonFarm deployment", async () => {
-    it("MoonFarm contract should have desired name", async () => {
+  describe("\nIII. MoonFarm deployment", async () => {
+    it("1. MoonFarm contract should have desired name", async () => {
       expect(await moonFarm.name()).to.equal("Moon Farm");
     });
 
-    it("MoonFarm contract has full MoonStake token spend allowance", async () => {
+    it("2. MoonFarm contract has full MoonStake token spend allowance", async () => {
       expect(await mnst.allowance(owner, moonFarm.address)).to.eql(
         mnstTotalSupply
       );
     });
+  });
 
-    //     it("contract has tokens", async () => {
-    //       let balance = await dappToken.balanceOf(tokenFarm.address);
-    //       assert.equal(balance.toString(), tokens("1000000"));
-    //     });
-    //   });
+  describe("\nIV. Farming tokens", async () => {
+    it("1. Investor should have correct amount of funds before staking", async () => {
+      expect((await mdai.balanceOf(investor)).toString()).to.equal(
+        web3.utils.toWei("100", "ether")
+      );
+    });
+
+    it("2. The staked amount should be deducted from the investor account and the state variables should be accordingly updated", async () => {
+      const initInvestorBalance = await mdai.balanceOf(investor);
+      const stakeAmount = 80;
+      await mdai.approve(moonFarm.address, tokens(stakeAmount), {
+        from: investor,
+      });
+      await expect(moonFarm.stake(tokens(stakeAmount), { from: investor })).to
+        .eventually.be.fulfilled;
+
+      expect((await mdai.balanceOf(investor)).toString()).to.equal(
+        BN(initInvestorBalance)
+          .sub(BN(tokens(stakeAmount)))
+          .toString()
+      );
+    });
   });
 });
