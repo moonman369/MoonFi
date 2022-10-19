@@ -63,14 +63,17 @@ contract("MoonFarm", ([owner, investor]) => {
   });
 
   describe("\nIV. Farming tokens", async () => {
+    // beforeEach(async () => {});
+
     it("1. Investor should have correct amount of funds before staking", async () => {
       expect((await mdai.balanceOf(investor)).toString()).to.equal(
         web3.utils.toWei("100", "ether")
       );
     });
 
-    it("2. The staked amount should be deducted from the investor account and the state variables should be accordingly updated", async () => {
+    it("2. The staked amount should be deducted from the investor account and added to MoonFarm contract", async () => {
       const initInvestorBalance = await mdai.balanceOf(investor);
+      const initFarmBalance = await mdai.balanceOf(moonFarm.address);
       const stakeAmount = 80;
       await mdai.approve(moonFarm.address, tokens(stakeAmount), {
         from: investor,
@@ -82,6 +85,35 @@ contract("MoonFarm", ([owner, investor]) => {
         BN(initInvestorBalance)
           .sub(BN(tokens(stakeAmount)))
           .toString()
+      );
+      expect((await mdai.balanceOf(moonFarm.address)).toString()).to.equal(
+        BN(initFarmBalance)
+          .add(BN(tokens(stakeAmount)))
+          .toString()
+      );
+
+      expect(await moonFarm.s_hasStaked(investor)).to.equal(true);
+
+      expect(await moonFarm.s_isStaking(investor)).to.equal(true);
+
+      expect((await moonFarm.s_stakingBalances(investor)).toString()).to.equal(
+        tokens(stakeAmount)
+      );
+    });
+
+    it("3. Users should not be able to stake less than 0.01 mDAI", async () => {
+      await expect(
+        moonFarm.stake(tokens("0.009"))
+      ).to.eventually.be.rejectedWith(
+        "MoonFarm: Minimum staking amount is 0.01 mDAI"
+      );
+    });
+
+    it("4. All the users are issued MNST tokens equal to the amount of mDAI tokens they have staked", async () => {
+      await expect(moonFarm.issueTokens({ from: owner })).to.eventually.be
+        .fulfilled;
+      expect(await mnst.balanceOf(investor)).to.eql(
+        await moonFarm.s_stakingBalances(investor)
       );
     });
   });
